@@ -1,5 +1,5 @@
 import express from "express";
-import connectDB from "./database";
+import connectDB from "./config/db";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
