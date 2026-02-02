@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     _id: string;
     [key: string]: any;
   };
+  userId?: string;
 }
 
 export const authenticate = async (
@@ -32,10 +33,13 @@ export const authenticate = async (
       throw ApiError.unauthorized("User not found");
     }
 
+    const userId = user._id.toString();
+    const userObject = user.toObject();
     req.user = {
-      _id: user._id.toString(),
-      ...user.toObject(),
+      ...userObject,
+      _id: userId, // Ensure _id is string, not ObjectId
     };
+    req.userId = userId;
 
     next();
   } catch (error) {
@@ -46,3 +50,6 @@ export const authenticate = async (
     }
   }
 };
+
+// Alias for authenticate
+export const requireAuth = authenticate;

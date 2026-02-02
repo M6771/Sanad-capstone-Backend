@@ -5,6 +5,7 @@ import cors from "cors";
 import morgan from "morgan";
 import path from "path";
 import { errorHandler } from "./middlewares/error.middleware";
+import usersRoutes from "./modules/users/users.routes";
 
 const app = express();
 
@@ -23,6 +24,9 @@ app.get("/health", (req, res) => {
     data: { message: "Server is running" },
   });
 });
+
+// API Routes
+app.use("/", usersRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
