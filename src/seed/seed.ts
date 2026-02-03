@@ -1,8 +1,8 @@
 import mongoose, { Schema } from "mongoose";
-import connectDB from "../config/db";
+import { connectDb } from "../config/db";
 import { env } from "../config/env";
 import { hashPassword } from "../utils/hash";
-import User from "../models/User.model";
+import { UserModel } from "../models/User.model";
 
 // Dummy data - all inline
 const dummyData = {
@@ -29,31 +29,28 @@ const dummyData = {
       name: "Omar Ahmed",
       age: 8,
       gender: "male",
-      diagnosis: "Autism Spectrum Disorder",
-      medicalHistory: "Diagnosed at age 3, receiving therapy since age 4",
+      medicalHistory: "Autism Spectrum Disorder - Diagnosed at age 3, receiving therapy since age 4",
       medications: "None",
       allergies: "Peanuts",
-      parentId: null, // Will be set after creating users
+      userId: null, // Will be set after creating users
     },
     {
       name: "Layla Fatima",
       age: 6,
       gender: "female",
-      diagnosis: "Down Syndrome",
-      medicalHistory: "Born with Down Syndrome, regular checkups",
+      medicalHistory: "Down Syndrome - Born with Down Syndrome, regular checkups",
       medications: "Vitamin supplements",
       allergies: "None",
-      parentId: null,
+      userId: null,
     },
     {
       name: "Youssef Mohammed",
       age: 10,
       gender: "male",
-      diagnosis: "ADHD",
-      medicalHistory: "Diagnosed at age 7, behavioral therapy",
+      medicalHistory: "ADHD - Diagnosed at age 7, behavioral therapy",
       medications: "Prescribed medication",
       allergies: "Dairy",
-      parentId: null,
+      userId: null,
     },
   ],
 
@@ -242,11 +239,10 @@ const createModelsIfNeeded = () => {
         name: { type: String, required: true },
         age: { type: Number, required: true },
         gender: { type: String, required: true },
-        diagnosis: { type: String },
         medicalHistory: { type: String },
         medications: { type: String },
         allergies: { type: String },
-        parentId: { type: Schema.Types.ObjectId, ref: "User" },
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
       },
       { timestamps: true }
     );
@@ -433,12 +429,16 @@ const createModelsIfNeeded = () => {
 const seedDatabase = async () => {
   try {
     // Connect to database
-    await connectDB();
+    await connectDb();
 
     // Clear existing data
     console.log("Clearing existing data...");
-    await mongoose.connection.db.dropDatabase();
-    console.log("Database cleared.");
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+      console.log("Database cleared.");
+    } else {
+      console.log("Database not connected, skipping drop.");
+    }
 
     // Create models
     const models = createModelsIfNeeded();
@@ -446,19 +446,22 @@ const seedDatabase = async () => {
     // Seed Users
     console.log("Seeding users...");
     const hashedUsers = await Promise.all(
-      dummyData.users.map(async (user) => ({
-        ...user,
-        password: await hashPassword(user.password),
-      }))
+      dummyData.users.map(async (user) => {
+        const { password, ...userData } = user;
+        return {
+          ...userData,
+          passwordHash: await hashPassword(password),
+        };
+      })
     );
-    const createdUsers = await User.insertMany(hashedUsers);
+    const createdUsers = await UserModel.insertMany(hashedUsers);
     console.log(`Created ${createdUsers.length} users`);
 
     // Seed Children
     console.log("Seeding children...");
     const childrenWithParents = dummyData.children.map((child, index) => ({
       ...child,
-      parentId: createdUsers[index % createdUsers.length]._id,
+      userId: createdUsers[index % createdUsers.length]._id,
     }));
     const createdChildren = await models.Child.insertMany(childrenWithParents);
     console.log(`Created ${createdChildren.length} children`);
@@ -483,7 +486,16 @@ const seedDatabase = async () => {
 
     // Seed Tasks
     console.log("Seeding tasks...");
-    const tasks = [];
+    const tasks: Array<{
+      carePathId: mongoose.Types.ObjectId;
+      week: number;
+      title: string;
+      description: string;
+      instructions: string;
+      expectedOutcome: string;
+      completed: boolean;
+      dueDate: Date;
+    }> = [];
     createdCarePaths.forEach((carePath, carePathIndex) => {
       const template = createdTemplates[carePathIndex % createdTemplates.length];
       template.tasks.forEach((taskTemplate: any) => {
