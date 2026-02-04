@@ -35,9 +35,20 @@ export const updateMeSchema = z.object({
 });
 
 /**
+ * Schema for login (POST /login)
+ */
+export const loginSchema = z.object({
+    body: z.object({
+        email: z.string().email("Invalid email format").toLowerCase().trim(),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+    }),
+});
+
+/**
  * Type inference from Zod schema
  */
 export type UpdateMeBody = z.infer<typeof updateMeSchema>["body"];
+export type LoginBody = z.infer<typeof loginSchema>["body"];
 
 /**
  * Validates update user profile request body
