@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { ApiError } from "../../utils/apiError";
+import { ApiError } from "../../middlewares/apiError";
 
 /**
  * Schema for updating user profile (PATCH /me)
+ * Note: phone is validated as string but will be converted to number for the model
  */
 export const updateMeSchema = z.object({
     body: z
@@ -47,7 +48,7 @@ export const validateUpdateMe = (data: unknown): UpdateMeBody => {
     try {
         // Validate that email is not present
         if (data && typeof data === "object" && "email" in data) {
-            throw new ApiError(400, "EMAIL_CHANGE_NOT_ALLOWED", "Email cannot be changed through this endpoint");
+            throw ApiError.badRequest("Email cannot be changed through this endpoint");
         }
 
         // Validate using Zod schema
@@ -56,12 +57,12 @@ export const validateUpdateMe = (data: unknown): UpdateMeBody => {
     } catch (error) {
         if (error instanceof z.ZodError) {
             const errors = error.errors.map((e) => `${e.path.join(".")}: ${e.message}`);
-            throw new ApiError(400, "VALIDATION_ERROR", errors.join(", "));
+            throw ApiError.badRequest(errors.join(", "));
         }
         // Re-throw ApiError if it's already an ApiError
         if (error instanceof ApiError) {
             throw error;
         }
-        throw new ApiError(400, "VALIDATION_ERROR", "Invalid request data");
+        throw ApiError.badRequest("Invalid request data");
     }
 };
