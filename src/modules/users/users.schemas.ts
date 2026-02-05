@@ -2,6 +2,29 @@ import { z } from "zod";
 import { ApiError } from "../../utils/apiError";
 
 /**
+ * Schema for registration (POST /register)
+ */
+export const registerSchema = z.object({
+    body: z.object({
+        name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters").trim(),
+        email: z.string().email("Invalid email format").trim().toLowerCase(),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        phone: z.number().positive("Phone must be a positive number").optional(),
+        address: z.string().max(200, "Address must be less than 200 characters").trim().optional(),
+    }),
+});
+
+/**
+ * Schema for login (POST /login)
+ */
+export const loginSchema = z.object({
+    body: z.object({
+        email: z.string().email("Invalid email format").trim().toLowerCase(),
+        password: z.string().min(1, "Password is required"),
+    }),
+});
+
+/**
  * Schema for updating user profile (PATCH /me)
  */
 export const updateMeSchema = z.object({

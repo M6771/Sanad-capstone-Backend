@@ -57,7 +57,7 @@ export const updateChildSchema = z.object({
 
 export const childIdParamSchema = z.object({
     params: z.object({
-        childId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid child ID format"),
+        id: z.string().min(1, "Child ID is required"),
     }),
 });
 
